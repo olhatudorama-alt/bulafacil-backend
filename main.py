@@ -1,18 +1,17 @@
 """
-BulaFácil — Backend
-====================
-Servidor FastAPI que recebe consultas de medicamentos
-e retorna análises usando a API da Anthropic.
+BulaFácil — Backend (Gemini gratuito)
+=======================================
+Servidor FastAPI usando Google Gemini API (gratuito).
 
 Hospede no Railway.app — configure a variável:
-  ANTHROPIC_API_KEY = sua_chave_aqui
+  GEMINI_API_KEY = sua_chave_aqui
 """
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
-import anthropic
+import google.generativeai as genai
 import os
 import json
 
@@ -26,8 +25,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Cliente Anthropic — lê a chave da variável de ambiente do Railway
-client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+# Configura o Gemini com a chave da variável de ambiente
+genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+model = genai.GenerativeModel("gemini-1.5-flash")  # Rápido e gratuito
 
 
 # ── Modelos de dados ────────────────────────────────────────────────
@@ -43,7 +43,7 @@ class ConsultaRequest(BaseModel):
 # ── Rota de status ──────────────────────────────────────────────────
 @app.get("/")
 def status():
-    return {"status": "BulaFácil backend rodando", "versao": "1.0.0"}
+    return {"status": "BulaFácil backend rodando", "versao": "1.0.0", "motor": "Gemini"}
 
 
 # ── Rota principal de consulta ──────────────────────────────────────
@@ -68,14 +68,14 @@ Medicamentos: {', '.join(meds)}
 
 Tarefas: {', '.join(opcoes)}
 
-Responda SOMENTE em JSON válido, sem texto fora do JSON:
+IMPORTANTE: Responda SOMENTE com JSON puro e válido, sem nenhum texto antes ou depois, sem markdown, sem blocos de código:
 {{
-  "nivel_risco": "seguro" | "atencao" | "perigo",
+  "nivel_risco": "seguro",
   "resumo_risco": "frase curta explicando o nível geral",
   "interacoes": [
     {{
       "medicamentos": ["med1", "med2"],
-      "gravidade": "leve" | "moderada" | "grave",
+      "gravidade": "leve",
       "descricao": "explicação clara em português simples",
       "recomendacao": "o que fazer"
     }}
@@ -91,7 +91,7 @@ Responda SOMENTE em JSON válido, sem texto fora do JSON:
   "como_tomar": [
     {{
       "nome": "nome do medicamento",
-      "orientacoes": "horário, com/sem comida, intervalo, duração típica"
+      "orientacoes": "horário, com/sem comida, intervalo"
     }}
   ],
   "seguranca_perfil": {{
@@ -99,29 +99,29 @@ Responda SOMENTE em JSON válido, sem texto fora do JSON:
     "avaliacoes": [
       {{
         "nome": "nome do medicamento",
-        "status": "seguro" | "cautela" | "contraindicado" | "sem dados",
+        "status": "seguro",
         "observacao": "explicação específica para este perfil"
       }}
     ],
-    "alerta_geral": "alerta geral para este perfil com estes medicamentos"
+    "alerta_geral": "alerta geral para este perfil"
   }}
-}}"""
+}}
+
+Valores possíveis:
+- nivel_risco: "seguro", "atencao" ou "perigo"
+- gravidade: "leve", "moderada" ou "grave"
+- status: "seguro", "cautela", "contraindicado" ou "sem dados"
+"""
 
     try:
-        message = client.messages.create(
-            model="claude-haiku-4-5-20251001",  # Haiku: mais barato, rápido e suficiente
-            max_tokens=1500,
-            messages=[{"role": "user", "content": prompt}]
-        )
-
-        raw = message.content[0].text
+        response = model.generate_content(prompt)
+        raw = response.text
+        # Remove possíveis marcações de código que o Gemini às vezes inclui
         clean = raw.replace("```json", "").replace("```", "").strip()
         result = json.loads(clean)
         return result
 
     except json.JSONDecodeError:
         raise HTTPException(status_code=500, detail="Erro ao processar resposta da IA")
-    except anthropic.AuthenticationError:
-        raise HTTPException(status_code=500, detail="Chave de API inválida — configure ANTHROPIC_API_KEY no Railway")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
