@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BulaFácil — Verifique Interações de Medicamentos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        input[type="text"], select, textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="text"]:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .med-inputs {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .med-input-row {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .med-input-row input {
+            flex: 1;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+        
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+            padding: 8px 16px;
+        }
+        
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+        
+        .btn-danger {
+            background: #ff4757;
+            color: white;
+            padding: 8px 16px;
+        }
+        
+        .btn-danger:hover {
+            background: #ff3344;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .result {
+            display: none;
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #f0f0f0;
+        }
+        
+        .result h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        
+        .risk-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        
+        .risk-seguro {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .risk-atencao {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .risk-perigo {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .card h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .card p {
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        .interacao {
+            border-left: 4px solid #ffc107;
+            padding-left: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .interacao.grave {
+            border-left-color: #dc3545;
+        }
+        
+        .interacao.moderada {
+            border-left-color: #ffc107;
+        }
+        
+        .interacao.leve {
+            border-left-color: #28a745;
+        }
+        
+        .aviso-legal {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 30px;
+            font-size: 13px;
+            color: #856404;
+        }
+        
+        .med-mapping {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .med-mapping strong {
+            color: #0066cc;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            .med-input-row {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💊 BulaFácil</h1>
+        <p class="subtitle">Verifique interações entre medicamentos de forma simples e segura</p>
+        
+        <form id="consultaForm">
+            <div class="form-group">
+                <label for="medicamentos">Medicamentos que você toma:</label>
+                <div class="med-inputs" id="medInputs">
+                    <div class="med-input-row">
+                        <input type="text" name="med" placeholder="Ex: Aspirina, Dorflex, Losartana..." required>
+                        <button type="button" class="btn btn-danger" onclick="removerMedicamento(this)">✕</button>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="adicionarMedicamento()" style="margin-top: 10px;">
+                    + Adicionar outro medicamento
+                </button>
+            </div>
+            
+            <div class="form-group">
+                <label for="perfil">Perfil do paciente:</label>
+                <select id="perfil" name="perfil">
+                    <option value="adulto">Adulto (18-59 anos)</option>
+                    <option value="idoso">Idoso (60+ anos)</option>
+                    <option value="gestante">Gestante</option>
+                    <option value="crianca">Criança</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" name="verificar_interacoes" checked> Verificar interações
+                </label>
+                <label>
+                    <input type="checkbox" name="verificar_uso" checked> Explicar para que serve
+                </label>
+                <label>
+                    <input type="checkbox" name="verificar_horarios" checked> Orientações de horário
+                </label>
+                <label>
+                    <input type="checkbox" name="verificar_perfil" checked> Segurança para meu perfil
+                </label>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">🔍 Verificar Medicamentos</button>
+        </form>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Analisando seus medicamentos...</p>
+            <p style="font-size: 13px; color: #999; margin-top: 10px;">Isso pode levar alguns segundos</p>
+        </div>
+        
+        <div class="result" id="result">
+            <h2>📋 Resultado da Análise</h2>
+            
+            <div id="riskBadge"></div>
+            
+            <div class="med-mapping" id="medMapping" style="display: none;"></div>
+            
+            <div id="resumoRisco" class="card"></div>
+            
+            <div id="interacoes"></div>
+            
+            <div id="sobreCadaUm"></div>
+            
+            <div id="comoTomar"></div>
+            
+            <div id="segurancaPerfil"></div>
+            
+            <div class="aviso-legal" id="avisoLegal"></div>
+        </div>
+    </div>
+    
+    <script>
+        // ⚠️ SUBSTITUA PELA SUA URL DO RAILWAY
+        const API_URL = 'https://SEU-APP.railway.app';
+        
+        function adicionarMedicamento() {
+            const container = document.getElementById('medInputs');
+            const row = document.createElement('div');
+            row.className = 'med-input-row';
+            row.innerHTML = `
+                <input type="text" name="med" placeholder="Ex: Aspirina, Dorflex, Losartana..." required>
+                <button type="button" class="btn btn-danger" onclick="removerMedicamento(this)">✕</button>
+            `;
+            container.appendChild(row);
+        }
+        
+        function removerMedicamento(btn) {
+            const inputs = document.querySelectorAll('.med-input-row');
+            if (inputs.length > 1) {
+                btn.parentElement.remove();
+            } else {
+                alert('Você precisa informar pelo menos um medicamento!');
+            }
+        }
+        
+        document.getElementById('consultaForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Coleta medicamentos
+            const meds = Array.from(document.querySelectorAll('input[name="med"]'))
+                .map(input => input.value.trim())
+                .filter(val => val);
+            
+            if (meds.length === 0) {
+                alert('Informe pelo menos um medicamento!');
+                return;
+            }
+            
+            // Coleta perfil
+            const perfil = document.getElementById('perfil').value;
+            
+            // Coleta opções
+            const opcoes = {
+                verificar_interacoes: document.querySelector('input[name="verificar_interacoes"]').checked,
+                verificar_uso: document.querySelector('input[name="verificar_uso"]').checked,
+                verificar_horarios: document.querySelector('input[name="verificar_horarios"]').checked,
+                verificar_perfil: document.querySelector('input[name="verificar_perfil"]').checked
+            };
+            
+            // Mostra loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('result').style.display = 'none';
+            
+            try {
+                const response = await fetch(`${API_URL}/consultar`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        medicamentos: meds,
+                        perfil: perfil,
+                        ...opcoes
+                    })
+                });
+                
+                const data = await response.json();
+                
+                // Exibe resultados
+                exibirResultado(data);
+                
+            } catch (error) {
+                alert('Erro ao consultar. Verifique sua conexão e tente novamente.');
+                console.error(error);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        });
+        
+        function exibirResultado(data) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            
+            // Badge de risco
+            const riskBadge = document.getElementById('riskBadge');
+            const riskClass = data.nivel_risco === 'seguro' ? 'risk-seguro' : 
+                             data.nivel_risco === 'atencao' ? 'risk-atencao' : 'risk-perigo';
+            const riskText = data.nivel_risco === 'seguro' ? '✅ Seguro' : 
+                            data.nivel_risco === 'atencao' ? '⚠️ Atenção' : '🚫 Perigo';
+            riskBadge.className = `risk-badge ${riskClass}`;
+            riskBadge.textContent = riskText;
+            riskBadge.style.display = 'inline-block';
+            
+            // Mapeamento de medicamentos
+            const medMapping = document.getElementById('medMapping');
+            if (data.mapeamento_aplicado && Object.keys(data.mapeamento_aplicado).length > 0) {
+                let html = '<strong>🗺️ Medicamentos reconhecidos:</strong><br>';
+                for (const [original, normalizado] of Object.entries(data.mapeamento_aplicado)) {
+                    if (original.toLowerCase() !== normalizado.toLowerCase()) {
+                        html += `${original} → <strong>${normalizado}</strong><br>`;
+                    }
+                }
+                medMapping.innerHTML = html;
+                medMapping.style.display = 'block';
+            } else {
+                medMapping.style.display = 'none';
+            }
+            
+            // Resumo
+            document.getElementById('resumoRisco').innerHTML = `
+                <h3>📌 Resumo</h3>
+                <p>${data.resumo_risco || 'Sem informações'}</p>
+            `;
+            
+            // Interações
+            const interacoesDiv = document.getElementById('interacoes');
+            if (data.interacoes && data.interacoes.length > 0) {
+                let html = '<div class="card"><h3>⚠️ Interações Encontradas</h3>';
+                data.interacoes.forEach(int => {
+                    const gravidadeClass = int.gravidade === 'grave' ? 'grave' : 
+                                          int.gravidade === 'moderada' ? 'moderada' : 'leve';
+                    html += `
+                        <div class="interacao ${gravidadeClass}">
+                            <strong>${int.medicamentos.join(' + ')}</strong><br>
+                            <small>Gravidade: ${int.gravidade}</small><br>
+                            <p>${int.descricao}</p>
+                            <p><strong>Recomendação:</strong> ${int.recomendacao}</p>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                interacoesDiv.innerHTML = html;
+            } else {
+                interacoesDiv.innerHTML = '<div class="card"><h3>✅ Nenhuma interação perigosa encontrada</h3></div>';
+            }
+            
+            // Sobre cada um
+            const sobreDiv = document.getElementById('sobreCadaUm');
+            if (data.sobre_cada_um && data.sobre_cada_um.length > 0) {
+                let html = '<div class="card"><h3>💊 Sobre Cada Medicamento</h3>';
+                data.sobre_cada_um.forEach(med => {
+                    html += `
+                        <div style="margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid #e0e0e0;">
+                            <strong>${med.nome}</strong><br>
+                            <small>${med.classe || ''}</small><br>
+                            <p><strong>Para que serve:</strong> ${med.para_que_serve}</p>
+                            <p><strong>Efeitos comuns:</strong> ${(med.efeitos_comuns || []).join(', ')}</p>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                sobreDiv.innerHTML = html;
+            } else {
+                sobreDiv.innerHTML = '';
+            }
+            
+            // Como tomar
+            const comoDiv = document.getElementById('comoTomar');
+            if (data.como_tomar && data.como_tomar.length > 0) {
+                let html = '<div class="card"><h3>🕐 Como Tomar</h3>';
+                data.como_tomar.forEach(med => {
+                    html += `
+                        <div style="margin-bottom: 12px;">
+                            <strong>${med.nome}</strong><br>
+                            <p>${med.orientacoes}</p>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                comoDiv.innerHTML = html;
+            } else {
+                comoDiv.innerHTML = '';
+            }
+            
+            // Segurança perfil
+            const segDiv = document.getElementById('segurancaPerfil');
+            if (data.seguranca_perfil) {
+                let html = `<div class="card"><h3>👤 Segurança para ${data.seguranca_perfil.perfil}</h3>`;
+                if (data.seguranca_perfil.avaliacoes && data.seguranca_perfil.avaliacoes.length > 0) {
+                    data.seguranca_perfil.avaliacoes.forEach(av => {
+                        const statusIcon = av.status === 'seguro' ? '✅' : 
+                                          av.status === 'cautela' ? '⚠️' : '🚫';
+                        html += `
+                            <div style="margin-bottom: 12px;">
+                                <strong>${statusIcon} ${av.nome}</strong><br>
+                                <p>${av.observacao}</p>
+                            </div>
+                        `;
+                    });
+                }
+                if (data.seguranca_perfil.alerta_geral) {
+                    html += `<p style="color: #856404; background: #fff3cd; padding: 10px; border-radius: 4px;">${data.seguranca_perfil.alerta_geral}</p>`;
+                }
+                html += '</div>';
+                segDiv.innerHTML = html;
+            } else {
+                segDiv.innerHTML = '';
+            }
+            
+            // Aviso legal
+            document.getElementById('avisoLegal').textContent = data.aviso_legal || 'Esta ferramenta é informativa e não substitui orientação médica ou farmacêutica. Em caso de dúvida, consulte um profissional de saúde.';
+            
+            // Rola para o resultado
+            resultDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>

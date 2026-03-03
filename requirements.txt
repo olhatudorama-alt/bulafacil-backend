@@ -1,4 +1,5 @@
-fastapi
-uvicorn
-google-generativeai
-python-dotenv
+fastapi==0.109.2
+uvicorn==0.27.1
+google-generativeai==0.3.2
+pydantic==2.6.1
+rapidfuzz==3.6.1
